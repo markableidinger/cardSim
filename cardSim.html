@@ -1,0 +1,233 @@
+<html>
+<head>
+<title>Draw Poker</title>
+<script>
+var score = 100;
+var dealt = false;
+var hand = new Array(6);
+var held = new Array(6);
+var deck = new Array(53);
+var bet
+function dealDraw() {
+  if (dealt == true) Draw();
+  else deal();
+}
+function deal() {
+// fill the deck (in order, for now)
+  document.getElementById('jesus').disabled=true
+  document.getElementById('double').disabled=true
+  for (i=1; i<14; i++) {
+    deck[i] = new Card(i,"c");
+    deck[i+13] = new Card(i,"h");
+    deck[i+26] = new Card(i,"s");
+    deck[i+39] = new Card(i,"d");
+  }
+// shuffle the deck
+  var n = Math.floor(400 * Math.random() + 500);
+  for (i=1; i<n; i++) {
+    card1 = Math.floor(52*Math.random() + 1);
+    card2 = Math.floor(52*Math.random() + 1);
+    temp = deck[card2];
+    deck[card2] = deck[card1];
+    deck[card1] = temp;
+  }
+// Deal and Display cards
+  for (i=1; i<6; i++) {
+    hand[i] = deck[i];
+    document.images[i].src = hand[i].fname();
+    document.images[i+5].src = "hold.gif";
+    held[i] = false;
+  }
+  dealt = true;
+  document.form1.total.value = score;
+  document.images[11].src="draw.gif";
+  Addscore();
+  bet = document.getElementById('bet').value
+  score = score - bet; //deduct bet amount
+  if(Addscore()>0){
+    document.getElementById('jesus').disabled=false
+    }
+}
+
+function blindBet(){
+  for(i=0; i<5; i++){
+    held[i]==false
+  }
+  bet*=2
+  Draw()
+  document.getElementById('jesus').disabled=true
+}
+
+function doubleBet(){
+  var doubleCard=deck[curcard++]
+  document.getElementById('double-card').src=doubleCard.fname();
+  if (doubleCard.suit=='h' || doubleCard.suit=='d'){
+    score+=Addscore()
+  }
+  else{
+    score-=Addscore()
+  }
+  document.getElementById('double').disabled=true
+}
+
+//Hold or discard a card
+function Hold(num) {
+  if (!dealt) return;
+  if (!held[num]) {
+    held[num]=true;
+    document.images[5+num].src="hold2.gif";
+  }
+  else {
+    held[num]=false;
+    document.images[5+num].src="hold.gif";
+  }
+}
+//Draw new cards
+function Draw() {
+  document.getElementById('jesus').disabled=true
+  document.getElementById('double').disabled=true
+  var curcard = 6;
+  for (i=1; i<6; i++) {
+    if (!held[i]) {
+    hand[i] = deck[curcard++];
+    document.images[i].src = hand[i].fname();
+    }
+  }
+  dealt = false;
+  document.images[11].src="deal.gif";
+  score += Addscore();
+  document.form1.total.value = score;
+  if(Addscore()>0){
+    document.getElementById('double').disabled=false
+  }
+}
+// Make a filename for an image, given Card object
+function fname() {
+  return this.num + this.suit + ".gif";
+}
+// Constructor for Card objects
+function Card(num,suit) {
+  this.num = num;
+  this.suit = suit;
+  this.fname = fname;
+}
+// Numeric sort function
+function numsort(a,b) { return a - b; }
+// Calculate Score
+function Addscore() {
+  var straight = false;
+  var flush = false;
+  var pairs = 0;
+  var three = false;
+  var tally = new Array(14);
+// sorted array for convenience
+  var nums = new Array(5);
+  for (i=0; i<5; i++) {
+    nums[i] = hand[i+1].num;
+   }
+  nums.sort(numsort);
+// flush
+  if (hand[1].suit == hand[2].suit &&
+      hand[2].suit == hand[3].suit &&
+      hand[3].suit == hand[4].suit &&
+      hand[4].suit == hand[5].suit) flush = true;
+// straight (Ace low)
+  if (nums[0] == nums[1] - 1 &&
+    nums[1] == nums[2] - 1 &&
+    nums[2] == nums[3] - 1 &&
+    nums[3] == nums[4] - 1) straight = true;
+// straight (Ace high)
+  if (nums[0] == 1 && nums[1] == 10 && nums[2] == 11
+    && nums[3] == 12 && nums[4] == 13)
+    straight = true;
+// royal flush, straight flush, straight, flush
+  if (straight && flush && nums[4] == 13 && nums[0] == 1) {
+    document.form1.message.value="Royal Flush";
+    return 100*bet;
+  }
+  if (straight && flush) {
+    document.form1.message.value="Straight Flush";
+    return 50*bet;
+  }
+  if (straight) {
+    document.form1.message.value="Straight";
+    return 4*bet;
+  }
+  if (flush) {
+    document.form1.message.value="Flush";
+    return 5*bet;
+  }
+// tally array is a count for each card value
+  for (i=1; i<14; i++) {
+    tally[i] = 0;
+  }
+  for (i=0; i<5; i++) {
+    tally[nums[i]] += 1;
+  }
+  for (i=1; i<14; i++) {
+    if (tally[i] == 4) {
+      document.form1.message.value = "Four of a Kind";
+      return 25*bet;
+    }
+    if (tally[i] == 3) three = true;
+    if (tally[i] == 2) pairs += 1;
+  }
+  if (three && pairs == 1) {
+    document.form1.message.value="Full House";
+    return 10*bet;
+  }
+  if (pairs == 2) {
+    document.form1.message.value="Two Pair";
+    return 2*bet;
+  }
+  if (three) {
+    document.form1.message.value="Three of a Kind";
+    return 3*bet;
+  }
+  if (pairs == 1) {
+    if (tally[1] == 2 || tally[11]==2
+    || tally[12] == 2 || tally[13]==2) {
+      document.form1.message.value="Jacks or Better";
+      return 1*bet;
+    }
+  }
+  document.form1.message.value="No Score";
+  return 0;
+}
+</script>
+</head>
+<body>
+<img src="title.gif" width=381 height=81>
+<hr>
+<form NAME="form1">
+<table>
+<tr>
+  <td> <img border=0 src="blank.gif" height=136 width=106>
+  <td> <img border=0 src="blank.gif" height=136 width=106>
+  <td> <img border=0 src="blank.gif" height=136 width=106>
+  <td> <img border=0 src="blank.gif" height=136 width=106>
+  <td> <img border=0 src="blank.gif" height=136 width=106>
+  <td> </td>
+</tr>
+<tr>
+  <td> <a href="#" onClick="Hold(1)"><img border=0 src="hold.gif" height=50 width=106></a>
+  <td> <a href="#" onClick="Hold(2)"><img border=0 src="hold.gif" height=50 width=106></a>
+  <td> <a href="#" onClick="Hold(3)"><img border=0 src="hold.gif" height=50 width=106></a>
+  <td> <a href="#" onClick="Hold(4)"><img border=0 src="hold.gif" height=50 width=106></a>
+  <td> <a href="#" onClick="Hold(5)"><img border=0 src="hold.gif" height=50 width=106></a>
+</tr>
+<tr>
+  <td> <b>Total<br/>Score:</b><input type="text" size=6 name="total" value="100"></td>
+  <td colspan=2> <b>Current <br>Hand:</b><input type="text" size=20 name="message" value="Press DEAL to begin.">
+  <td>
+  <td> <a href="#" onClick="dealDraw()"><img border=0 src="deal.gif" height=50 width=106></a>
+</tr>
+</table>
+Bet: <input id='bet' type='number' value='1' min='1' max='50'/>
+<br/>
+<button id='jesus' onClick='blindBet()' disabled>Jesus, Take the Wheel</button><br/>
+<button id='double' onClick='doubleBet()' disabled>Double or Nothing!</button><br/>
+<div id='double-card'><img src='blank.gif' height=136 width=106></div>
+</form>
+</body>
+</html>
